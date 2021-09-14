@@ -1,13 +1,13 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
-    <weather-forecast :weather-codes="weatherCodes" />
+    <weather-forecast 
+      :weather-codes="weatherCodes" 
+      :office-codes="officeCodes" 
+      :center-codes="centerCodes" />
   </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
 import WeatherForecast from './components/WeatherForecast.vue'
 
 export default {
@@ -15,11 +15,11 @@ export default {
   data: () => {
     return {
       weatherCodes: {},
+      centerCodes: {},
       officeCodes: {},
     };
   },
   components: {
-    HelloWorld,
     WeatherForecast,
   },
   created() {
@@ -40,7 +40,8 @@ export default {
       fetch(`https://www.jma.go.jp/bosai/common/const/area.json`).then(data => {
         return data.json();
       }).then(area => {
-        self.$set(self, 'officeCodes', area);
+        self.$set(self, 'officeCodes', area?.offices);
+        self.$set(self, 'centerCodes', area?.centers);
       }).catch(error => console.error(error));
     }
   }
