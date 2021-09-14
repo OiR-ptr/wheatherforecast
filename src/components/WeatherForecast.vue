@@ -1,25 +1,100 @@
 <template>
   <div>
-    <h1>Weather Forecast</h1>
-    <p>{{this.weatherCodes}}</p>
+    <b-field label="Prefecture">
+      <b-select v-model="selectedOffice" placeholder="Country">
+          <option v-for="(office, officeNum) in offices" 
+            :key="officeNum" :value="officeNum">
+            {{office.name}}
+          </option>
+      </b-select>
+    </b-field>
+
+    <weekly-weather :weeklyWeathers="weeklyWeathers" :weatherCodes="weatherCodes" />
   </div>
 </template>
 
 <script>
+import WeeklyWeather from './WeeklyWeather.vue';
+
 export default {
+  components: { WeeklyWeather },
   name: 'WeatherForecast',
+  data: () => {
+    return {
+      selectedOffice: [],
+      weeklyWeathers: [],
+    };
+  },
   props: {
     weatherCodes: {
       type: Object,
       default: () => {
-        return { item: 'baka' };
+        return {};
       }
     },
+    officeCodes: {
+      type: Object,
+      default: () => {
+        return {};
+      }
+    },
+    centerCodes: {
+      type: Object,
+      default: () => {
+        return {};
+      }
+    }
   },
-  updated: {
-    weatherCodes() {
-      debugger;
-      console.log(this.weatherCodes);
+  computed: {
+    weathers: function () {
+      return this.weatherCodes;
+    },
+    offices: function () {
+      return this.officeCodes;
+    },
+    centers: function () {
+      return this.centerCodes;
+    }
+  },
+  watch: {
+    selectedOffice: function () {
+      fetch(`https://www.jma.go.jp/bosai/forecast/data/forecast/${this.selectedOffice}.json`)
+        .then(data => data.json())
+        .then(res => {
+          const timeSeries = res.flatMap(item => item?.timeSeries);
+          const filtered = timeSeries.map(item => {
+            return {
+              timeDefines: item?.timeDefines,
+              weatherCodes: item?.areas?.find(_ => true)?.weatherCodes,
+            };
+          }).filter(item => item.weatherCodes);
+
+          // 各 timeDefineとweatherCodeを統合する
+          // [{timeDef, weatherCode} ... ] (length: 7) となる想定
+          const pair = filtered.reduce((acc, item, _idx) => {
+            if(item?.timeDefines?.length !== item?.weatherCodes?.length) return acc;
+
+            item?.timeDefines?.forEach((_, idx) => {
+              const time = new Date(item.timeDefines[idx]);
+              const weatherCode = item.weatherCodes[idx];
+
+              if(acc.length == 0 || acc.every(elem => {
+                return elem.time.toDateString() != time.toDateString()
+              })) {
+                acc.push({
+                  idx: acc.length,
+                  time,
+                  weatherCode
+                });
+              }
+            });
+            return acc;
+          }, []);
+
+          this.weeklyWeathers = pair;
+        }).catch(error => {
+          console.error(error);
+        });
     }
   }
 }
