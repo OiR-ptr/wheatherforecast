@@ -1,17 +1,19 @@
 <template>
-  <div>
-    <b-field label="Prefecture">
-      <b-select v-model="selectedOffice" placeholder="Country">
-          <optgroup v-for="center in centers" :key="center.key" :label="center.name">
-            <option v-for="prefecture in getPrefectures(center.key)" :key="prefecture.key" :value="prefecture.key">
-              {{prefecture.name}}
-            </option>
-          </optgroup>
-      </b-select>
+  <section>
+    <b-field grouped>
+      <b-field label="地方" label-position="on-border">
+        <b-select v-model="selectedOffice" placeholder="Country">
+            <optgroup v-for="center in centers" :key="center.key" :label="center.name">
+              <option v-for="prefecture in getPrefectures(center.key)" :key="prefecture.key" :value="prefecture.key">
+                {{prefecture.name}}
+              </option>
+            </optgroup>
+        </b-select>
+      </b-field>
     </b-field>
 
     <weekly-weather :weeklyWeathers="weeklyWeathers" :weatherCodes="weatherCodes" />
-  </div>
+  </section>
 </template>
 
 <script>

@@ -1,9 +1,11 @@
 <template>
   <div id="app">
-    <weather-forecast 
-      :weather-codes="weatherCodes" 
-      :office-codes="officeCodes" 
-      :center-codes="centerCodes" />
+    <div class="container">
+      <weather-forecast 
+        :weather-codes="weatherCodes" 
+        :office-codes="officeCodes" 
+        :center-codes="centerCodes" />
+    </div>
   </div>
 </template>
 
