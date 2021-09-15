@@ -2,10 +2,11 @@
   <div>
     <b-field label="Prefecture">
       <b-select v-model="selectedOffice" placeholder="Country">
-          <option v-for="(office, officeNum) in offices" 
-            :key="officeNum" :value="officeNum">
-            {{office.name}}
-          </option>
+          <optgroup v-for="center in centers" :key="center.key" :label="center.name">
+            <option v-for="prefecture in getPrefectures(center.key)" :key="prefecture.key" :value="prefecture.key">
+              {{prefecture.name}}
+            </option>
+          </optgroup>
       </b-select>
     </b-field>
 
@@ -53,7 +54,27 @@ export default {
       return this.officeCodes;
     },
     centers: function () {
-      return this.centerCodes;
+      return Object.entries(this.centerCodes).map(([centerCode, center]) => {
+        return {
+          key: centerCode,
+          ...center,
+        };
+      });
+    },
+    officeEntries: function() {
+      return Object.entries(this.offices).map(([officeCode, office]) => {
+        return {
+          key: officeCode,
+          ...office,
+        };
+      });
+    }
+  },
+  methods: {
+    getPrefectures(_parentCode) {
+      return this.officeEntries.filter(item => {
+        return item.parent == _parentCode;
+      })
     }
   },
   watch: {
