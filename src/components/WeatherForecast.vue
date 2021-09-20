@@ -12,7 +12,7 @@
       </b-field>
     </b-field>
 
-    <weekly-weather :weeklyWeathers="weeklyWeathers" :weatherCodes="weatherCodes" />
+    <weekly-weather :weeklyWeathers="weeklyWeathers" :weeklyTempsMinMax="weeklyTempsMinMax" :weatherCodes="weatherCodes" />
   </section>
 </template>
 
@@ -26,6 +26,7 @@ export default {
     return {
       selectedOffice: [],
       weeklyWeathers: [],
+      weeklyTempsMinMax: [],
     };
   },
   props: {
@@ -85,7 +86,7 @@ export default {
         .then(data => data.json())
         .then(res => {
           const timeSeries = res.flatMap(item => item?.timeSeries);
-          const filtered = timeSeries.map(item => {
+          const filteredWeatherCode = timeSeries.map(item => {
             return {
               timeDefines: item?.timeDefines,
               weatherCodes: item?.areas?.find(_ => true)?.weatherCodes,
@@ -94,7 +95,7 @@ export default {
 
           // 各 timeDefineとweatherCodeを統合する
           // [{timeDef, weatherCode} ... ] (length: 7) となる想定
-          const pair = filtered.reduce((acc, item, _idx) => {
+          this.weeklyWeathers = filteredWeatherCode.reduce((acc, item, _idx) => {
             if(item?.timeDefines?.length !== item?.weatherCodes?.length) return acc;
 
             item?.timeDefines?.forEach((_, idx) => {
@@ -114,7 +115,72 @@ export default {
             return acc;
           }, []);
 
-          this.weeklyWeathers = pair;
+          const filteredTempsMinMax = timeSeries.map(item => {
+            const firstarea = item?.areas?.find(_ => true);
+            return {
+              timeDefines: item?.timeDefines,
+              tempsMin: firstarea?.tempsMin,
+              tempsMax: firstarea?.tempsMax,
+            };
+          }).filter(item => item.tempsMin || item.tempsMax);
+
+          const dailyTempMinMax = filteredTempsMinMax.reduce((acc, item) => {
+            if(item?.timeDefines?.length !== item?.tempsMin?.length)  return acc;
+            if(item?.timeDefines?.length !== item?.tempsMax?.length)  return acc;
+
+            item?.timeDefines?.forEach((_, idx) => {
+              const time = new Date(item.timeDefines[idx]);
+              const tempMin = item.tempsMin[idx];
+              const tempMax = item.tempsMax[idx];
+              
+              if(!tempMin && !tempMax) {
+                // 気温値が指定されていないデータ(当日分)を弾く
+                return;
+              }
+              acc.push({
+                time, 
+                tempMin, 
+                tempMax,
+              });
+            });
+            return acc;
+          }, []);
+
+          const filteredTemps = timeSeries.map(item => {
+            const firstarea = item?.areas?.find(_ => true);
+            return {
+              timeDefines: item?.timeDefines,
+              temps: firstarea?.temps,
+            };
+          }).filter(item => item.temps);
+
+          const dailyTemp = filteredTemps.reduce((acc, item) => {
+            if(item?.timeDefines?.length !== item?.temps?.length) return acc;
+
+            const endIdx = item?.timeDefines?.length - 1;
+            let collectDate = new Date(item?.timeDefines?.find(_ => true));
+            let temps = [];
+            item?.timeDefines?.forEach((_, idx) => {
+              const time = new Date(item.timeDefines[idx]);
+              const temp = item.temps[idx];
+
+              if(collectDate?.toDateString() !== time.toDateString() || idx == endIdx) {
+                temps.push(temp);
+                acc.push({
+                  time: collectDate,
+                  tempMin: Math.min(...temps).toString(),
+                  tempMax: Math.max(...temps).toString(),
+                });
+
+                collectDate = time;
+              } else {
+                temps.push(temp);
+              }
+            });
+            return acc;
+          }, []);
+
+          this.weeklyTempsMinMax = [...dailyTemp, ...dailyTempMinMax];
         }).catch(error => {
           console.error(error);
         });
